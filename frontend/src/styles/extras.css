@@ -1,0 +1,20 @@
+/* Utilidades añadidas en la migración a React (reemplazan estilos inline repetidos) */
+.stack { display: flex; flex-direction: column; gap: 1.5rem; }
+.row-actions { display: flex; gap: 0.35rem; align-items: center; }
+.cell-sub { color: var(--slate-500); font-size: var(--font-size-xs); display: block; }
+.empty-row { text-align: center; padding: 2rem; color: var(--slate-500); }
+.empty-box { text-align: center; padding: 2.5rem; color: var(--slate-400); }
+.empty-box__icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.col-full { grid-column: 1 / -1; }
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1.1fr; gap: 1.5rem; margin-top: 1rem; }
+.specialty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+.nav-item { cursor: pointer; }
+.nav-item.active { pointer-events: auto; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-control.is-invalid { border-color: var(--danger-500); }
+@media (max-width: 1100px) { .dashboard-grid { grid-template-columns: 1fr; } }
+@media (max-width: 992px) {
+  .app-footer { flex-direction: column; gap: 0.25rem; text-align: center; }
+  .topbar__status-chip { display: none; }
+  .main-content { padding: 1rem; }
+}
