@@ -11,46 +11,29 @@ const estadoBadge = (e) => (e === 'En Espera' ? 'badge--warning' : e === 'En Con
 function NuevaCitaModal({ onClose }) {
   const { data, insert } = useStore()
   const toast = useToast()
-  const { pacientes, medicos, sedes, especialidades, citas } = data
+  const { pacientes, medicos, recepcionistas } = data
   const [f, setF] = useState({
-    pacienteId: '', medicoId: '', sede: sedes[0]?.nombre || '', fecha: hoyISO(), hora: '10:00',
-    monto: '60.00', estadoPago: 'Pagado', motivo: '',
+    pacienteId: '', medicoId: '', recepcionistaId: '', fecha: hoyISO(), hora: '10:00',
   })
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
 
-  const alElegirMedico = (e) => {
-    const medicoId = e.target.value
-    const m = medicos.find((x) => String(x.id) === medicoId)
-    const esp = m && especialidades.find((x) => x.nombre === m.especialidad)
-    setF((s) => ({ ...s, medicoId, monto: esp ? Number(esp.tarifa).toFixed(2) : s.monto }))
-  }
-
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     const paciente = pacientes.find((p) => String(p.id) === f.pacienteId)
-    const medico = medicos.find((m) => String(m.id) === f.medicoId)
-    if (!paciente || !medico) return
-    const siguiente = citas.reduce((max, c) => Math.max(max, c.id), 0) + 1
-    const codigoCita = `CIT-${f.fecha.slice(0, 4)}-${String(siguiente).padStart(3, '0')}`
-    insert('citas', {
-      codigoCita,
-      pacienteId: paciente.id,
-      pacienteNombre: `${paciente.nombres} ${paciente.apellidos}`,
-      pacienteDni: paciente.dni,
-      medicoId: medico.id,
-      medicoNombre: `${medico.nombres} ${medico.apellidos}`,
-      especialidad: medico.especialidad,
-      sede: f.sede,
-      consultorio: (medico.consultorio || '').split(' ')[0],
-      fecha: f.fecha,
-      hora: f.hora,
-      motivo: f.motivo.trim() || 'Consulta médica ordinaria',
-      monto: Number(f.monto) || 0,
-      estadoPago: f.estadoPago,
-      estado: 'Programada',
-    })
-    toast.success(`Cita médica ${codigoCita} agendada para ${paciente.nombres} ${paciente.apellidos}.`)
-    onClose()
+    try {
+      const cita = await insert('citas', {
+        pacienteId: Number(f.pacienteId),
+        medicoId: Number(f.medicoId),
+        recepcionistaId: Number(f.recepcionistaId),
+        fecha: f.fecha,
+        hora: f.hora,
+        estado: 'Programada',
+      })
+      toast.success(`Cita médica ${cita.codigoCita} agendada para ${paciente.nombres} ${paciente.apellidos}.`)
+      onClose()
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
@@ -75,15 +58,16 @@ function NuevaCitaModal({ onClose }) {
         </div>
         <div className="form-group">
           <label className="form-label">Médico Tratante <span className="required">*</span></label>
-          <select className="form-control" required value={f.medicoId} onChange={alElegirMedico}>
+          <select className="form-control" required value={f.medicoId} onChange={set('medicoId')}>
             <option value="">-- Seleccionar Médico --</option>
             {medicos.map((m) => <option key={m.id} value={m.id}>{m.nombres} {m.apellidos} - {m.especialidad}</option>)}
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">Sede de Atención <span className="required">*</span></label>
-          <select className="form-control" required value={f.sede} onChange={set('sede')}>
-            {sedes.map((s) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)}
+          <label className="form-label">Recepcionista <span className="required">*</span></label>
+          <select className="form-control" required value={f.recepcionistaId} onChange={set('recepcionistaId')}>
+            <option value="">-- Seleccionar Recepcionista --</option>
+            {recepcionistas.map((r) => <option key={r.id} value={r.id}>{r.nombres} {r.apellidos}</option>)}
           </select>
         </div>
         <div className="form-group">
@@ -93,21 +77,6 @@ function NuevaCitaModal({ onClose }) {
         <div className="form-group">
           <label className="form-label">Hora <span className="required">*</span></label>
           <input type="time" className="form-control" required value={f.hora} onChange={set('hora')} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Costo Consulta (S/)</label>
-          <input type="number" min="0" className="form-control" value={f.monto} step="0.50" onChange={set('monto')} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Estado del Pago</label>
-          <select className="form-control" value={f.estadoPago} onChange={set('estadoPago')}>
-            <option value="Pagado">Pagado (Caja / Yape)</option>
-            <option value="Pendiente">Pendiente de Pago</option>
-          </select>
-        </div>
-        <div className="form-group col-full">
-          <label className="form-label">Motivo de Consulta / Síntomas</label>
-          <textarea className="form-control" rows={2} value={f.motivo} onChange={set('motivo')} placeholder="Describa el motivo o síntoma principal del paciente..." />
         </div>
       </form>
     </Modal>
@@ -147,13 +116,21 @@ export default function Citas() {
       navigate('/medicos')
       return
     }
+    if (data.recepcionistas.length === 0) {
+      window.alert('No hay recepcionistas registrados en la base de datos para asignar la cita.')
+      return
+    }
     setNueva(true)
   }
 
-  const eliminar = (c) => {
+  const eliminar = async (c) => {
     if (!window.confirm(`¿Estás seguro de eliminar el registro de la cita ${c.codigoCita}?`)) return
-    remove('citas', c.id)
-    toast.warning(`Cita ${c.codigoCita} eliminada.`)
+    try {
+      await remove('citas', c.id)
+      toast.warning(`Cita ${c.codigoCita} eliminada.`)
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
@@ -161,7 +138,7 @@ export default function Citas() {
       <div className="card__header">
         <div>
           <h3 className="card__title">📅 Gestión y Agendamiento de Citas</h3>
-          <p className="card__subtitle">Control de turnos, consultorios asignados y estados de atención</p>
+          <p className="card__subtitle">Agenda y seguimiento de citas por paciente y profesional</p>
         </div>
         <button type="button" className="btn btn--primary" onClick={abrirNueva}>+ Agendar Nueva Cita</button>
       </div>
@@ -184,11 +161,11 @@ export default function Citas() {
       <div className="table-container">
         <table className="table-modern">
           <thead>
-            <tr><th>Código Cita</th><th>Fecha / Hora</th><th>Paciente</th><th>Médico &amp; Especialidad</th><th>Sede &amp; Consultorio</th><th>Costo / Pago</th><th>Estado</th><th>Acciones</th></tr>
+            <tr><th>Código Cita</th><th>Fecha / Hora</th><th>Paciente</th><th>Médico &amp; Especialidad</th><th>Estado</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             {lista.length === 0 ? (
-              <tr><td colSpan={8} className="empty-row">No hay citas registradas bajo este criterio.</td></tr>
+              <tr><td colSpan={6} className="empty-row">No hay citas registradas bajo este criterio.</td></tr>
             ) : (
               lista.map((c) => (
                 <tr key={c.id}>
@@ -204,14 +181,6 @@ export default function Citas() {
                   <td>
                     <div>{c.medicoNombre}</div>
                     <small className="badge badge--neutral" style={{ marginTop: 2 }}>{c.especialidad}</small>
-                  </td>
-                  <td>
-                    <div>{c.sede}</div>
-                    <small className="cell-sub">Cons: <strong>{c.consultorio}</strong></small>
-                  </td>
-                  <td>
-                    <div>S/ {Number(c.monto).toFixed(2)}</div>
-                    <span className={`badge ${c.estadoPago === 'Pagado' ? 'badge--success' : 'badge--warning'}`}>{c.estadoPago}</span>
                   </td>
                   <td><span className={`badge ${estadoBadge(c.estado)}`}>{c.estado}</span></td>
                   <td>

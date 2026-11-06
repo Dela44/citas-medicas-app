@@ -5,20 +5,7 @@ import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
 
 const VACIO = {
-  dni: '', nombres: '', apellidos: '', fechaNacimiento: '', genero: 'Masculino', telefono: '',
-  email: '', direccion: '', grupoSanguineo: 'O+', alergias: 'Ninguna', contactoEmergencia: '',
-}
-const GRUPOS = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
-
-function calcularEdad(fecha) {
-  if (!fecha) return null
-  const n = new Date(fecha)
-  if (Number.isNaN(n.getTime())) return null
-  const hoy = new Date()
-  let edad = hoy.getFullYear() - n.getFullYear()
-  const m = hoy.getMonth() - n.getMonth()
-  if (m < 0 || (m === 0 && hoy.getDate() < n.getDate())) edad--
-  return Math.max(edad, 0)
+  dni: '', nombres: '', apellidos: '', fechaNacimiento: '', telefono: '',
 }
 
 function PacienteForm({ paciente, onClose }) {
@@ -28,7 +15,7 @@ function PacienteForm({ paciente, onClose }) {
   const [errors, setErrors] = useState({})
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     const dni = f.dni.trim()
     const telefono = f.telefono.trim()
@@ -43,26 +30,21 @@ function PacienteForm({ paciente, onClose }) {
       nombres: f.nombres.trim(),
       apellidos: f.apellidos.trim(),
       fechaNacimiento: f.fechaNacimiento,
-      edad: calcularEdad(f.fechaNacimiento),
-      genero: f.genero,
       telefono,
-      email: f.email.trim(),
-      direccion: f.direccion.trim(),
-      grupoSanguineo: f.grupoSanguineo,
-      alergias: f.alergias.trim() || 'Ninguna',
-      contactoEmergencia: f.contactoEmergencia.trim(),
-      historiaClinica: `HC-${dni}`,
-      estado: 'Activo',
     }
 
-    if (paciente) {
-      update('pacientes', paciente.id, registro)
-      toast.success(`Paciente ${registro.nombres} ${registro.apellidos} actualizado correctamente.`)
-    } else {
-      insert('pacientes', { ...registro, fechaRegistro: new Date().toISOString().split('T')[0] })
-      toast.success(`Paciente ${registro.nombres} registrado exitosamente con Historia HC-${dni}.`)
+    try {
+      if (paciente) {
+        await update('pacientes', paciente.id, registro)
+        toast.success(`Paciente ${registro.nombres} ${registro.apellidos} actualizado correctamente.`)
+      } else {
+        await insert('pacientes', registro)
+        toast.success(`Paciente ${registro.nombres} registrado exitosamente.`)
+      }
+      onClose()
+    } catch (error) {
+      toast.error(error.message)
     }
-    onClose()
   }
 
   return (
@@ -96,37 +78,9 @@ function PacienteForm({ paciente, onClose }) {
           <input type="date" className="form-control" value={f.fechaNacimiento} onChange={set('fechaNacimiento')} />
         </div>
         <div className="form-group">
-          <label className="form-label">Género <span className="required">*</span></label>
-          <select className="form-control" required value={f.genero} onChange={set('genero')}>
-            <option>Masculino</option><option>Femenino</option><option>Otro</option>
-          </select>
-        </div>
-        <div className="form-group">
           <label className="form-label">Teléfono Móvil (9 dígitos) <span className="required">*</span></label>
           <input type="tel" className={`form-control ${errors.telefono ? 'is-invalid' : ''}`} maxLength={9} required value={f.telefono} onChange={set('telefono')} placeholder="987654321" inputMode="numeric" />
           {errors.telefono && <div className="form-error">{errors.telefono}</div>}
-        </div>
-        <div className="form-group">
-          <label className="form-label">Correo Electrónico</label>
-          <input type="email" className="form-control" value={f.email} onChange={set('email')} placeholder="paciente@correo.com" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Grupo Sanguíneo</label>
-          <select className="form-control" value={f.grupoSanguineo} onChange={set('grupoSanguineo')}>
-            {GRUPOS.map((g) => <option key={g}>{g}</option>)}
-          </select>
-        </div>
-        <div className="form-group col-full">
-          <label className="form-label">Dirección Domiciliaria</label>
-          <input className="form-control" value={f.direccion} onChange={set('direccion')} placeholder="Av./Calle, Número, Distrito" />
-        </div>
-        <div className="form-group col-full">
-          <label className="form-label">Alergias Conocidas</label>
-          <input className="form-control" value={f.alergias} onChange={set('alergias')} placeholder="Ej. Penicilina, AINEs (o 'Ninguna')" />
-        </div>
-        <div className="form-group col-full">
-          <label className="form-label">Contacto de Emergencia</label>
-          <input className="form-control" value={f.contactoEmergencia} onChange={set('contactoEmergencia')} placeholder="Nombre, parentesco y número de teléfono" />
         </div>
       </form>
     </Modal>
@@ -153,14 +107,11 @@ function PacienteDetalle({ paciente, onClose }) {
             <span className="badge badge--primary" style={{ fontSize: '0.9rem' }}>{paciente.historiaClinica}</span>
             <span className="badge badge--success">{paciente.estado}</span>
           </div>
-          <p><strong>DNI:</strong> {paciente.dni} | <strong>Edad:</strong> {paciente.edad ?? '-'} años | <strong>Sexo:</strong> {paciente.genero}</p>
-          <p><strong>Grupo Sanguíneo:</strong> {paciente.grupoSanguineo || 'No registrado'} | <strong>Alergias:</strong> <span style={{ color: 'var(--danger-600)', fontWeight: 600 }}>{paciente.alergias}</span></p>
+          <p><strong>DNI:</strong> {paciente.dni} | <strong>Edad:</strong> {paciente.edad ?? '-'} años</p>
         </div>
         <div>
           <h4 style={{ fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem' }}>Datos de Contacto:</h4>
-          <p>📱 {paciente.telefono} | ✉️ {paciente.email || '-'}</p>
-          <p>📍 {paciente.direccion || 'Sin dirección'}</p>
-          <p>🆘 <strong>Contacto de Emergencia:</strong> {paciente.contactoEmergencia || 'No asignado'}</p>
+          <p>📱 {paciente.telefono || '-'}</p>
         </div>
       </div>
     </Modal>
@@ -186,10 +137,14 @@ export default function Pacientes() {
     )
   }, [data.pacientes, q])
 
-  const eliminar = (p) => {
+  const eliminar = async (p) => {
     if (!window.confirm(`¿Estás seguro de dar de baja al paciente ${p.nombres} ${p.apellidos} (DNI: ${p.dni})?`)) return
-    remove('pacientes', p.id)
-    toast.warning(`Paciente ${p.nombres} retirado del padrón activo.`)
+    try {
+      await remove('pacientes', p.id)
+      toast.warning(`Paciente ${p.nombres} retirado del padrón activo.`)
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
@@ -213,29 +168,18 @@ export default function Pacientes() {
       <div className="table-container">
         <table className="table-modern">
           <thead>
-            <tr><th>DNI</th><th>Paciente</th><th>Edad / Género</th><th>Teléfono / Email</th><th>Alergias</th><th>Historia Clínica</th><th>Acciones</th></tr>
+            <tr><th>DNI</th><th>Paciente</th><th>Edad</th><th>Teléfono</th><th>Historia Clínica</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             {lista.length === 0 ? (
-              <tr><td colSpan={7} className="empty-row">No se encontraron pacientes registrados.</td></tr>
+              <tr><td colSpan={6} className="empty-row">No se encontraron pacientes registrados.</td></tr>
             ) : (
               lista.map((p) => (
                 <tr key={p.id}>
                   <td><strong>{p.dni}</strong></td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{p.nombres} {p.apellidos}</div>
-                    <small className="cell-sub">{p.direccion || 'Sin dirección'}</small>
-                  </td>
-                  <td>{p.edad ? `${p.edad} años` : '-'} · <span className="badge badge--neutral">{p.genero}</span></td>
-                  <td>
-                    <div>📞 {p.telefono}</div>
-                    <small className="cell-sub">{p.email}</small>
-                  </td>
-                  <td>
-                    {p.alergias && p.alergias !== 'Ninguna'
-                      ? <span className="badge badge--danger">⚠️ {p.alergias}</span>
-                      : <span className="badge badge--success">Ninguna</span>}
-                  </td>
+                  <td><div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{p.nombres} {p.apellidos}</div></td>
+                  <td>{p.edad == null ? '-' : `${p.edad} años`}</td>
+                  <td>{p.telefono || '-'}</td>
                   <td><span className="badge badge--primary">{p.historiaClinica || `HC-${p.dni}`}</span></td>
                   <td>
                     <div className="row-actions">

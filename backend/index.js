@@ -6,6 +6,7 @@ const db = require('./db');
 // Importar rutas
 const pacientesRoutes = require('./routes/pacientes');
 const medicosRoutes = require('./routes/medicos');
+const clinicaRoutes = require('./routes/clinica');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -16,6 +17,7 @@ app.use(express.json());
 // Usar las rutas de la API REST
 app.use('/api/pacientes', pacientesRoutes);
 app.use('/api/medicos', medicosRoutes);
+app.use('/api', clinicaRoutes);
 
 app.get('/', (req, res) => {
     res.json({ mensaje: '¡El backend del Sistema de Citas Médicas está funcionando!' });

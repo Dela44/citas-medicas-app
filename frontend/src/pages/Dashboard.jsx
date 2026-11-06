@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../context/StoreContext'
 import { useToast } from '../components/ui/Toast'
 import CitaEstadoModal from '../components/ui/CitaEstadoModal'
+import { hoyISO } from '../utils/dates'
 
 const estadoBadge = (e) => (e === 'En Espera' ? 'badge--warning' : e === 'En Consulta' ? 'badge--primary' : e === 'Atendido' ? 'badge--success' : 'badge--neutral')
 
@@ -11,16 +12,21 @@ export default function Dashboard() {
   const toast = useToast()
   const navigate = useNavigate()
   const [gestionar, setGestionar] = useState(null)
-  const { citas, medicos, pagos } = data
+  const { medicos, pagos } = data
+  const citas = data.citas.filter((cita) => cita.fecha === hoyISO())
 
   const pacientesEspera = citas.filter((c) => c.estado === 'En Espera').length
   const medicosDisponibles = medicos.filter((m) => m.estado === 'Disponible').length
-  const ingresos = pagos.reduce((s, p) => s + Number(p.monto), 0).toFixed(2)
+  const ingresos = pagos.filter((pago) => pago.estado === 'Pagado').reduce((s, p) => s + Number(p.monto), 0).toFixed(2)
 
-  const eliminar = (c) => {
+  const eliminar = async (c) => {
     if (!window.confirm(`¿Estás seguro de eliminar el registro de la cita ${c.codigoCita}? Esta acción retirará la cita de forma permanente.`)) return
-    remove('citas', c.id)
-    toast.warning(`Cita ${c.codigoCita} eliminada correctamente.`)
+    try {
+      await remove('citas', c.id)
+      toast.warning(`Cita ${c.codigoCita} eliminada correctamente.`)
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
@@ -72,12 +78,12 @@ export default function Dashboard() {
           <div className="table-container">
             <table className="table-modern">
               <thead>
-                <tr><th>Hora</th><th>Paciente</th><th>Médico / Especialidad</th><th>Consultorio</th><th>Estado</th><th>Acción</th></tr>
+                <tr><th>Hora</th><th>Paciente</th><th>Médico / Especialidad</th><th>Estado</th><th>Acción</th></tr>
               </thead>
               <tbody>
                 {citas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty-box">
+                    <td colSpan={5} className="empty-box">
                       <div className="empty-box__icon">📅</div>
                       <strong>No hay citas programadas para el día de hoy.</strong>
                       <p style={{ fontSize: 'var(--font-size-xs)', marginTop: 4 }}>Usa el botón &quot;+ Nueva Cita&quot; para agendar una atención.</p>
@@ -95,7 +101,6 @@ export default function Dashboard() {
                         <div>{c.medicoNombre}</div>
                         <small style={{ color: 'var(--primary-600)', fontWeight: 600 }}>{c.especialidad}</small>
                       </td>
-                      <td><span className="badge badge--neutral">{c.consultorio}</span></td>
                       <td><span className={`badge ${estadoBadge(c.estado)}`}>{c.estado}</span></td>
                       <td>
                         <div className="row-actions">
@@ -126,7 +131,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: '1.5rem' }}>{m.foto}</div>
                       <div>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{m.nombres} {m.apellidos}</div>
-                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--slate-500)' }}>{m.especialidad} · Cons. {m.consultorio}</div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--slate-500)' }}>{m.especialidad}</div>
                       </div>
                     </div>
                     <span className={`badge ${m.estado === 'Disponible' ? 'badge--success' : 'badge--warning'}`}>{m.estado}</span>

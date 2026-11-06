@@ -1,39 +1,43 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { loadAll, saveAll } from '../services/storeService'
+import { createRecord, deleteRecord, loadAll, updateRecord } from '../services/storeService'
 
 const StoreContext = createContext(null)
 
 export function StoreProvider({ children }) {
-  const [data, setData] = useState(loadAll)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    saveAll(data)
-  }, [data])
-
-  const insert = useCallback((col, item) => {
-    setData((prev) => {
-      const list = prev[col] || []
-      const id = item.id ?? list.reduce((max, o) => (o.id > max ? o.id : max), 0) + 1
-      return { ...prev, [col]: [{ ...item, id }, ...list] }
-    })
+    loadAll()
+      .then(setData)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
   }, [])
 
-  const update = useCallback((col, id, patch) => {
+  const insert = useCallback(async (col, item) => {
+    const record = await createRecord(col, item)
+    setData((prev) => ({ ...prev, [col]: [record, ...(prev[col] || [])] }))
+    return record
+  }, [])
+
+  const update = useCallback(async (col, id, patch) => {
+    const record = await updateRecord(col, id, patch)
     setData((prev) => ({
       ...prev,
-      [col]: (prev[col] || []).map((o) => (o.id === id ? { ...o, ...patch } : o)),
+      [col]: (prev[col] || []).map((item) => (item.id === id ? record : item)),
     }))
+    return record
   }, [])
 
-  const remove = useCallback((col, id) => {
+  const remove = useCallback(async (col, id) => {
+    await deleteRecord(col, id)
     setData((prev) => ({ ...prev, [col]: (prev[col] || []).filter((o) => o.id !== id) }))
   }, [])
 
-  const clearAll = useCallback(() => {
-    setData((prev) => ({ ...prev, pacientes: [], medicos: [], citas: [], historiasClinicas: [], pagos: [] }))
-  }, [])
-
-  const value = useMemo(() => ({ data, insert, update, remove, clearAll }), [data, insert, update, remove, clearAll])
+  const value = useMemo(() => ({ data, loading, error, insert, update, remove }), [data, loading, error, insert, update, remove])
+  if (loading) return <div className="api-state">Conectando con el backend...</div>
+  if (error) return <div className="api-state api-state--error">{error}</div>
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 

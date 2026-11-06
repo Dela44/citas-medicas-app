@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import logoIcon from '../../assets/logo-tusalud-icon.png'
 import { USUARIO_ACTUAL } from '../../data/mockDb'
-import { useStore } from '../../context/StoreContext'
 import { useToast } from '../ui/Toast'
 import { ROUTES } from '../../data/routes'
 
 export default function Layout() {
   const { pathname } = useLocation()
-  const { clearAll } = useStore()
   const toast = useToast()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -32,12 +30,6 @@ export default function Layout() {
   const toggleSidebar = () => {
     if (window.innerWidth <= 992) setMobileOpen((v) => !v)
     else setCollapsed((v) => !v)
-  }
-
-  const vaciar = () => {
-    if (!window.confirm('¿Vaciar el historial? Se eliminarán pacientes, médicos, citas, historias y pagos.')) return
-    clearAll()
-    toast.warning('Historial vaciado: pacientes, médicos y citas eliminados.')
   }
 
   const sections = [...new Set(ROUTES.map((r) => r.section))]
@@ -100,7 +92,6 @@ export default function Layout() {
               🔔
               <span className="topbar__notification-badge" />
             </button>
-            <button type="button" className="btn btn--outline btn--sm" onClick={vaciar}>🗑️ Vaciar Historial</button>
           </div>
         </header>
 
