@@ -16,12 +16,18 @@ const ENDPOINTS = {
   cajeros: 'cajeros',
 }
 
-async function request(path, options) {
+export async function apiRequest(path, options = {}) {
   let response
   try {
     response = await fetch(`${API_URL}/${path}`, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(localStorage.getItem('tusalud_token')
+          ? { Authorization: `Bearer ${localStorage.getItem('tusalud_token')}` }
+          : {}),
+        ...options.headers,
+      },
     })
   } catch {
     throw new Error('No se pudo conectar con el backend. Comprueba que el servidor esté activo.')
@@ -35,7 +41,7 @@ async function request(path, options) {
 export async function loadAll() {
   const data = await Promise.all(Object.entries(ENDPOINTS).map(async ([collection, path]) => [
     collection,
-    await request(path),
+    await apiRequest(path),
   ]))
   const result = { ...structuredClone(MOCK_DATA), ...Object.fromEntries(data) }
   result.historiasClinicas = result.historiasClinicas.map((historia) => ({
@@ -46,13 +52,13 @@ export async function loadAll() {
 }
 
 export function createRecord(collection, item) {
-  return request(ENDPOINTS[collection], { method: 'POST', body: JSON.stringify(item) })
+  return apiRequest(ENDPOINTS[collection], { method: 'POST', body: JSON.stringify(item) })
 }
 
 export function updateRecord(collection, id, patch) {
-  return request(`${ENDPOINTS[collection]}/${id}`, { method: 'PATCH', body: JSON.stringify(patch) })
+  return apiRequest(`${ENDPOINTS[collection]}/${id}`, { method: 'PATCH', body: JSON.stringify(patch) })
 }
 
 export function deleteRecord(collection, id) {
-  return request(`${ENDPOINTS[collection]}/${id}`, { method: 'DELETE' })
+  return apiRequest(`${ENDPOINTS[collection]}/${id}`, { method: 'DELETE' })
 }

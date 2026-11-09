@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import logoIcon from '../../assets/logo-tusalud-icon.png'
-import { USUARIO_ACTUAL } from '../../data/mockDb'
+import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../ui/Toast'
 import { ROUTES } from '../../data/routes'
 
 export default function Layout() {
   const { pathname } = useLocation()
+  const { user, logout } = useAuth()
   const toast = useToast()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -65,12 +66,13 @@ export default function Layout() {
 
         <div className="sidebar__footer">
           <div className="user-profile-mini">
-            <div className="user-profile-mini__avatar">{USUARIO_ACTUAL.avatar}</div>
+            <div className="user-profile-mini__avatar">{user.correo.slice(0, 2).toUpperCase()}</div>
             <div className="user-profile-mini__info">
-              <div className="user-profile-mini__name">{USUARIO_ACTUAL.nombre}</div>
-              <div className="user-profile-mini__role">Admisión / Admin</div>
+              <div className="user-profile-mini__name">{user.correo}</div>
+              <div className="user-profile-mini__role">Administrador</div>
             </div>
           </div>
+          <button type="button" className="sidebar__logout" onClick={logout}>Cerrar sesión</button>
         </div>
       </aside>
 
