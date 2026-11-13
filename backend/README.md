@@ -21,7 +21,7 @@ Con el backend activo, abre `http://localhost:4000/api-docs`. Para probar operac
 
 Las reservas en línea requieren al menos un médico y un recepcionista registrados en la base de datos. El sistema asigna la reserva al primer recepcionista disponible; el horario debe estar libre.
 
-`CORS_ORIGINS` limita CORS a los orígenes permitidos. Para permitir más de uno, sepáralos con comas. `FRONTEND_ORIGIN` sigue aceptándose por compatibilidad.
+`CORS_ORIGINS` añade orígenes permitidos para CORS; sepáralos con comas. El origen público `https://citas-medicas-ugco.onrender.com` y los dos orígenes locales de Vite se permiten por defecto. `FRONTEND_ORIGIN` sigue aceptándose por compatibilidad.
 
 ## Despliegue en Render
 

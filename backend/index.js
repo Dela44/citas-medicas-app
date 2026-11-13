@@ -21,8 +21,12 @@ const app = express();
 const PORT = configuredPort;
 let backendReady = false;
 let startupFailed = false;
-const allowedOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_ORIGIN || 'http://localhost:5173,http://localhost:4173')
-    .split(',')
+const allowedOrigins = [
+    'https://citas-medicas-ugco.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:4173',
+    ...(process.env.CORS_ORIGINS || process.env.FRONTEND_ORIGIN || '').split(','),
+]
     .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
