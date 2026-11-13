@@ -21,4 +21,4 @@ Con el backend activo, abre `http://localhost:4000/api-docs`. Para probar operac
 
 Las reservas en línea requieren al menos un médico y un recepcionista registrados en la base de datos. El sistema asigna la reserva al primer recepcionista disponible; el horario debe estar libre.
 
-`FRONTEND_ORIGIN` limita CORS a los orígenes permitidos. Para permitir más de uno, sepáralos con comas.
+`CORS_ORIGINS` limita CORS a los orígenes permitidos. Para permitir más de uno, sepáralos con comas. `FRONTEND_ORIGIN` sigue aceptándose por compatibilidad.

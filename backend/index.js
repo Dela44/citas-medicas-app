@@ -19,15 +19,20 @@ const portalRoutes = require('./routes/portal');
 
 const app = express();
 const PORT = configuredPort;
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_ORIGIN || 'http://localhost:5173,http://localhost:4173')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        callback(new Error('El origen no está permitido por la política CORS.'));
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        const error = new Error('El origen no está permitido por la política CORS.');
+        error.status = 403;
+        return callback(error);
     },
 }));
 app.use(express.json());
@@ -51,7 +56,10 @@ app.use((req, res, next) => {
 // Middleware de manejo de errores globales
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Ocurrió un error interno en el servidor.' });
+    const status = err.status === 403 ? 403 : 500;
+    res.status(status).json({
+        error: status === 403 ? err.message : 'Ocurrió un error interno en el servidor.',
+    });
 });
 
 initializeAuth()
