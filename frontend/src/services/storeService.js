@@ -1,6 +1,9 @@
 import { MOCK_DATA } from '../data/mockDb'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '')
+const API_URL = configuredApiUrl.endsWith('/api')
+  ? configuredApiUrl
+  : `${configuredApiUrl}/api`
 
 const ENDPOINTS = {
   pacientes: 'pacientes',

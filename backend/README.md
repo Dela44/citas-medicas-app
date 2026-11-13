@@ -27,4 +27,4 @@ Las reservas en línea requieren al menos un médico y un recepcionista registra
 
 Configura en el servicio del backend las variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` y `JWT_SECRET` (aleatorio, mínimo 32 caracteres). Render proporciona `PORT` automáticamente; no lo confundas con `DB_PORT`. Añade `ADMIN_EMAIL` y `ADMIN_PASSWORD` si necesitas crear la cuenta administradora.
 
-El backend abre el puerto antes de inicializar MySQL para que Render detecte el servicio. `GET /health` devuelve `503` mientras inicializa o si falla; revisa los logs y las variables del servicio. Si el frontend está desplegado por separado, configura allí `VITE_API_URL` con la URL del backend seguida de `/api`, y agrega el origen del frontend a `CORS_ORIGINS`.
+El backend abre el puerto antes de inicializar MySQL para que Render detecte el servicio. `GET /health` devuelve `503` mientras inicializa o si falla; revisa los logs y las variables del servicio. Si el frontend está desplegado por separado, configura allí `VITE_API_URL` con la URL base del backend; el frontend agrega `/api` si falta. Asegúrate de que el origen del frontend esté permitido por CORS.
