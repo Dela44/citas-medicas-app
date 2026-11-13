@@ -22,3 +22,9 @@ Con el backend activo, abre `http://localhost:4000/api-docs`. Para probar operac
 Las reservas en línea requieren al menos un médico y un recepcionista registrados en la base de datos. El sistema asigna la reserva al primer recepcionista disponible; el horario debe estar libre.
 
 `CORS_ORIGINS` limita CORS a los orígenes permitidos. Para permitir más de uno, sepáralos con comas. `FRONTEND_ORIGIN` sigue aceptándose por compatibilidad.
+
+## Despliegue en Render
+
+Configura en el servicio del backend las variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` y `JWT_SECRET` (aleatorio, mínimo 32 caracteres). Render proporciona `PORT` automáticamente; no lo confundas con `DB_PORT`. Añade `ADMIN_EMAIL` y `ADMIN_PASSWORD` si necesitas crear la cuenta administradora.
+
+El backend abre el puerto antes de inicializar MySQL para que Render detecte el servicio. `GET /health` devuelve `503` mientras inicializa o si falla; revisa los logs y las variables del servicio. Si el frontend está desplegado por separado, configura allí `VITE_API_URL` con la URL del backend seguida de `/api`, y agrega el origen del frontend a `CORS_ORIGINS`.

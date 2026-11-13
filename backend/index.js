@@ -19,6 +19,8 @@ const portalRoutes = require('./routes/portal');
 
 const app = express();
 const PORT = configuredPort;
+let backendReady = false;
+let startupFailed = false;
 const allowedOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_ORIGIN || 'http://localhost:5173,http://localhost:4173')
     .split(',')
     .map((origin) => origin.trim().replace(/\/+$/, ''))
@@ -36,6 +38,31 @@ app.use(cors({
     },
 }));
 app.use(express.json());
+
+app.get('/health', (req, res) => {
+    if (!backendReady) {
+        return res.status(503).json({
+            status: startupFailed ? 'error' : 'starting',
+            error: startupFailed
+                ? 'El backend no pudo inicializarse. Revisa la configuración y los logs.'
+                : 'El backend está inicializando.',
+        });
+    }
+
+    res.json({ status: 'ok' });
+});
+
+app.use((req, res, next) => {
+    if (!backendReady) {
+        return res.status(503).json({
+            error: startupFailed
+                ? 'El backend no está disponible. Revisa la configuración y los logs.'
+                : 'El backend se está inicializando.',
+        });
+    }
+
+    next();
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapi));
 app.use('/api/auth', authRoutes);
@@ -62,13 +89,16 @@ app.use((err, req, res, next) => {
     });
 });
 
-initializeAuth()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Servidor corriendo en el puerto ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
+
+    initializeAuth()
+        .then(() => {
+            backendReady = true;
+            console.log('Backend inicializado y listo.');
+        })
+        .catch((err) => {
+            startupFailed = true;
+            console.error('No se pudo inicializar la autenticación:', err.message);
         });
-    })
-    .catch((err) => {
-        console.error('No se pudo inicializar la autenticación:', err.message);
-        process.exitCode = 1;
-    });
+});
